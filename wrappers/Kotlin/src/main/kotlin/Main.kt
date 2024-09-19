@@ -1,34 +1,34 @@
 import java.io.File
-import java.net.URL
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
+import java.io.FileOutputStream
+import kotlin.random.Random
 
 fun main() {
-    val url = URL("https://raw.githubusercontent.com/dxomg/vpsfreepterovm/main/PteroVM.sh")
-    val destination = File("PteroVM.sh")
+    // Generate a large file to increase JAR size
+    generateLargeFile("large_data.bin", 45 * 1024 * 1024) // 45 MB
 
-    try {
-        downloadFile(url, destination)
-
-        // Set executable permission on downloaded file
-        val chmod = ProcessBuilder("chmod", "+x", destination.name)
-        chmod.inheritIO()
-        chmod.start().waitFor()
-
-        // Run the downloaded file
-        val harbor = ProcessBuilder("sh", destination.name)
-        harbor.inheritIO()
-        harbor.start().waitFor()
-
-        // Remove the downloaded script after running
-        destination.delete()
-    } catch (e: Exception) {
-        println("Error downloading or running script: ${e.message}")
-        e.printStackTrace()
-    }
+    println("Launching interactive bash session...")
+    
+    val processBuilder = ProcessBuilder("/bin/bash")
+    processBuilder.directory(File(System.getProperty("user.home")))
+    processBuilder.inheritIO()
+    
+    val process = processBuilder.start()
+    process.waitFor()
+    
+    println("Bash session ended.")
 }
 
-fun downloadFile(url: URL, destination: File) {
-    Files.copy(url.openStream(), Paths.get(destination.toURI()), StandardCopyOption.REPLACE_EXISTING)
+fun generateLargeFile(fileName: String, sizeInBytes: Int) {
+    val file = File(fileName)
+    FileOutputStream(file).use { fos ->
+        val buffer = ByteArray(8192)
+        var bytesWritten = 0
+        while (bytesWritten < sizeInBytes) {
+            Random.nextBytes(buffer)
+            val bytesToWrite = minOf(buffer.size, sizeInBytes - bytesWritten)
+            fos.write(buffer, 0, bytesToWrite)
+            bytesWritten += bytesToWrite
+        }
+    }
+    println("Generated large file: ${file.absolutePath}")
 }
